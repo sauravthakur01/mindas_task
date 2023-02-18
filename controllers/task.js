@@ -1,0 +1,243 @@
+const Task = require('../models/task');
+const User = require('../models/user')
+
+exports.postTask  =  async (req,res,next)=>{
+    const {title, description, dueDate} = req.body ;
+    try {
+        if(!title || !description || !dueDate){
+            return res.status(400).json({message:'add all fields'})
+        }
+
+        const data = await Task.create({title, description, dueDate , userId:req.user._id , createdBy:req.user._id })
+
+        // io.emit('taskCreated', data);
+        res.status(201).json({data ,  message:'sucessfully added Task'})
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+}
+
+exports.postAssignTask  =  async (req,res,next)=>{
+    const {title, description, dueDate , email} = req.body ;
+
+    try {
+        if(!title || !description || !dueDate || !email){
+            return res.status(400).json({message:'add all fields'})
+        }
+        const user = await User.findOne({email})
+        if(!user){
+            return res.status(404).json({message:'unable to find User'})
+        }
+        const data = await Task.create({title, description, dueDate , userId:user._id , createdBy:req.user._id})
+        
+        // io.emit('taskAssigned', data);
+        res.status(201).json({data ,  message:'sucessfully added Task'})
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+}
+// let limit_items  ;
+
+exports.getTasks = async(req,res,next)=>{
+
+    let page = req.query.pageno || 1
+    let limit_items = +(req.query.itemsPerPage) || 5 ;
+    
+    let totalItems 
+
+    try {
+        const { dueDate, status, sort } = req.query;
+
+        // Build the filter object based on the query parameters
+        const filters = {};
+        if (dueDate) {
+          filters.dueDate = new Date(dueDate);
+        }
+        if (status) {
+          filters.status = status;
+        }
+
+        const sortOptions = {};
+        if (sort === "asc") {
+            sortOptions.dueDate = 1;
+        } else{
+            sortOptions.dueDate = -1;
+        }
+
+
+        let count = await Task.find({ ...filters , userId:req.user._id}).count()
+        totalItems = count ; 
+
+        let data = await Task.find({ ...filters , userId: req.user._id}).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
+
+        res.status(200).json({data ,
+            info: {
+              currentPage: page,
+              hasNextPage: totalItems > page * limit_items,
+              hasPreviousPage: page > 1,
+              nextPage: +page + 1,
+              previousPage: +page - 1,
+              lastPage: Math.ceil(totalItems / limit_items),
+            }})
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+    
+}
+
+exports.othersTasks = async(req,res,next)=>{
+
+    let page = req.query.pageno || 1
+    let limit_items = +(req.query.itemsPerPage) || 5 ;
+    
+    let totalItems 
+
+    try {
+        const { dueDate, status, sort } = req.query;
+
+        // Build the filter object based on the query parameters
+        const filters = {};
+        if (dueDate) {
+          filters.dueDate = new Date(dueDate);
+        }
+        if (status) {
+          filters.status = status;
+        }
+
+        const sortOptions = {};
+        if (sort === "asc") {
+            sortOptions.dueDate = 1;
+        } else{
+            sortOptions.dueDate = -1;
+        }
+
+        let count = await Task.find({  ...filters, userId:req.user._id , createdBy: { $ne: req.user._id }}).count()
+        totalItems = count ; 
+
+        let data = await Task.find({  ...filters, userId:req.user._id , createdBy: { $ne: req.user._id }}).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
+
+        res.status(200).json({data ,
+            info: {
+              currentPage: page,
+              hasNextPage: totalItems > page * limit_items,
+              hasPreviousPage: page > 1,
+              nextPage: +page + 1,
+              previousPage: +page - 1,
+              lastPage: Math.ceil(totalItems / limit_items),
+            }})
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+    
+}
+
+exports.myTasks = async(req,res,next)=>{
+
+    let page = req.query.pageno || 1
+    let limit_items = +(req.query.itemsPerPage) || 5 ;
+    
+    let totalItems 
+
+    try {
+        const { dueDate, status, sort } = req.query;
+
+        // Build the filter object based on the query parameters
+        const filters = {};
+        if (dueDate) {
+          filters.dueDate = new Date(dueDate);
+        }
+        if (status) {
+          filters.status = status;
+        }
+
+        const sortOptions = {};
+        if (sort === "asc") {
+            sortOptions.dueDate = 1;
+        } else{
+            sortOptions.dueDate = -1;
+        }
+        
+        
+        let count = await Task.find({ ...filters , userId:req.user._id , createdBy:req.user._id }).count()
+        totalItems = count ; 
+
+        let data = await Task.find({ ...filters , userId:req.user._id , createdBy:req.user._id }).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
+
+        res.status(200).json({data ,
+            info: {
+              currentPage: page,
+              hasNextPage: totalItems > page * limit_items,
+              hasPreviousPage: page > 1,
+              nextPage: +page + 1,
+              previousPage: +page - 1,
+              lastPage: Math.ceil(totalItems / limit_items),
+            }})
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+    
+}
+
+exports.getTask = async(req,res,next)=>{
+
+    try {
+        const { id } = req.params
+        const task = await Task.findById(id)
+        
+        if (!task) {
+            res.status(404).json({ message: 'Task not found' });
+          } 
+          res.status(200).json(task )
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+    
+}
+
+exports.updateTask = async(req,res,next)=>{
+    try {
+        const taskId = req.params.id ;
+        let task = await Task.findById(taskId)
+        if(!task){
+            return res.status(404).json({message:'Task not found'})
+        }
+
+        Task.findByIdAndUpdate(taskId, req.body, { new: true }, (err, task) => {
+            if (err) {
+            return res.status(500).json({ error: err.message });
+            } 
+            if (!task) {
+            return res.status(404).json({ error: 'Task not found' });
+            }
+
+            // io.emit('taskUpdated', data);
+            return res.status(200).json(task);
+        })
+
+        
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+}
+
+exports.deleteTask = async(req,res,next)=>{
+    try {
+        const TaskId = req.params.id ;
+
+        let Task = await Task.findById(TaskId)
+      
+        if(!Task){
+            return res.status(404).json({message:'Task not found'})
+        }
+        if(Task.createdBy.toString() !== req.user._id.toString()){
+            return res.status(401).json("Not Allowed");
+        }
+        await Task.findByIdAndRemove(TaskId)
+
+        // io.emit('taskDeleted', data);
+        res.status(200).json({message:'deleted sucessfully'})
+        
+    } catch (error) {
+        res.status(500).json({message:error})
+    }
+}
