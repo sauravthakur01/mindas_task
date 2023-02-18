@@ -1,6 +1,8 @@
 const Task = require('../models/task');
 const User = require('../models/user')
 
+const io = require('../socket/socket').getIO()
+
 exports.postTask  =  async (req,res,next)=>{
     const {title, description, dueDate} = req.body ;
     try {
@@ -10,7 +12,7 @@ exports.postTask  =  async (req,res,next)=>{
 
         const data = await Task.create({title, description, dueDate , userId:req.user._id , createdBy:req.user._id })
 
-        // io.emit('taskCreated', data);
+        io.emit('taskCreated', data);
         res.status(201).json({data ,  message:'sucessfully added Task'})
     } catch (error) {
         res.status(500).json({message:error})
@@ -30,7 +32,7 @@ exports.postAssignTask  =  async (req,res,next)=>{
         }
         const data = await Task.create({title, description, dueDate , userId:user._id , createdBy:req.user._id})
         
-        // io.emit('taskAssigned', data);
+        io.emit('taskAssigned', data);
         res.status(201).json({data ,  message:'sucessfully added Task'})
     } catch (error) {
         res.status(500).json({message:error})
@@ -210,7 +212,7 @@ exports.updateTask = async(req,res,next)=>{
             return res.status(404).json({ error: 'Task not found' });
             }
 
-            // io.emit('taskUpdated', data);
+            io.emit('taskUpdated', data);
             return res.status(200).json(task);
         })
 
@@ -234,7 +236,7 @@ exports.deleteTask = async(req,res,next)=>{
         }
         await Task.findByIdAndRemove(TaskId)
 
-        // io.emit('taskDeleted', data);
+        io.emit('taskDeleted', data);
         res.status(200).json({message:'deleted sucessfully'})
         
     } catch (error) {
