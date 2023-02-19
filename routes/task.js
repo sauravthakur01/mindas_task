@@ -10,13 +10,7 @@ router.post('/add-task' , middleware.authentication, taskController.postTask );
 // assign task to other
 router.post('/assign-task', middleware.authentication, taskController.postAssignTask);
 
-// get task assigned by others
-router.get('/assigned-by-other' , middleware.authentication,  taskController.othersTasks)
-
-// get my own task
-router.get('/mytasks' , middleware.authentication,  taskController.myTasks)
-
-//get all tasks
+//get tasks by changing query to all,my,others byDefault it is set to all
 router.get('/all' , middleware.authentication,  taskController.getTasks)
 
 //get task by id

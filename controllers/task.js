@@ -45,6 +45,8 @@ exports.getTasks = async(req,res,next)=>{
     let page = req.query.pageno || 1
     let limit_items = +(req.query.itemsPerPage) || 5 ;
     
+    let getTaskType = req.query.task || "all"
+
     let totalItems 
 
     try {
@@ -66,104 +68,29 @@ exports.getTasks = async(req,res,next)=>{
             sortOptions.dueDate = -1;
         }
 
+        let data
 
+        if(getTaskType == "all"){
+            
         let count = await Task.find({ ...filters , userId:req.user._id}).count()
         totalItems = count ; 
 
-        let data = await Task.find({ ...filters , userId: req.user._id}).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
-
-        res.status(200).json({data ,
-            info: {
-              currentPage: page,
-              hasNextPage: totalItems > page * limit_items,
-              hasPreviousPage: page > 1,
-              nextPage: +page + 1,
-              previousPage: +page - 1,
-              lastPage: Math.ceil(totalItems / limit_items),
-            }})
-    } catch (error) {
-        res.status(500).json({message:error})
-    }
-    
-}
-
-exports.othersTasks = async(req,res,next)=>{
-
-    let page = req.query.pageno || 1
-    let limit_items = +(req.query.itemsPerPage) || 5 ;
-    
-    let totalItems 
-
-    try {
-        const { dueDate, status, sort } = req.query;
-
-        // Build the filter object based on the query parameters
-        const filters = {};
-        if (dueDate) {
-          filters.dueDate = new Date(dueDate);
+        data = await Task.find({ ...filters , userId: req.user._id}).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
         }
-        if (status) {
-          filters.status = status;
-        }
-
-        const sortOptions = {};
-        if (sort === "asc") {
-            sortOptions.dueDate = 1;
-        } else{
-            sortOptions.dueDate = -1;
-        }
-
-        let count = await Task.find({  ...filters, userId:req.user._id , createdBy: { $ne: req.user._id }}).count()
+        else if(getTaskType == "others"){
+        
+            let count = await Task.find({ ...filters, userId:req.user._id , createdBy: { $ne: req.user._id }}).count()
         totalItems = count ; 
 
-        let data = await Task.find({  ...filters, userId:req.user._id , createdBy: { $ne: req.user._id }}).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
-
-        res.status(200).json({data ,
-            info: {
-              currentPage: page,
-              hasNextPage: totalItems > page * limit_items,
-              hasPreviousPage: page > 1,
-              nextPage: +page + 1,
-              previousPage: +page - 1,
-              lastPage: Math.ceil(totalItems / limit_items),
-            }})
-    } catch (error) {
-        res.status(500).json({message:error})
-    }
-    
-}
-
-exports.myTasks = async(req,res,next)=>{
-
-    let page = req.query.pageno || 1
-    let limit_items = +(req.query.itemsPerPage) || 5 ;
-    
-    let totalItems 
-
-    try {
-        const { dueDate, status, sort } = req.query;
-
-        // Build the filter object based on the query parameters
-        const filters = {};
-        if (dueDate) {
-          filters.dueDate = new Date(dueDate);
+        data = await Task.find({  ...filters, userId:req.user._id , createdBy: { $ne: req.user._id }}).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
         }
-        if (status) {
-          filters.status = status;
-        }
-
-        const sortOptions = {};
-        if (sort === "asc") {
-            sortOptions.dueDate = 1;
-        } else{
-            sortOptions.dueDate = -1;
-        }
-        
+        else if(getTaskType == "my"){
         
         let count = await Task.find({ ...filters , userId:req.user._id , createdBy:req.user._id }).count()
         totalItems = count ; 
 
-        let data = await Task.find({ ...filters , userId:req.user._id , createdBy:req.user._id }).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
+        data = await Task.find({ ...filters , userId:req.user._id , createdBy:req.user._id }).sort(sortOptions).skip((page-1)*limit_items).limit(limit_items)
+        }
 
         res.status(200).json({data ,
             info: {
@@ -179,6 +106,7 @@ exports.myTasks = async(req,res,next)=>{
     }
     
 }
+
 
 exports.getTask = async(req,res,next)=>{
 
