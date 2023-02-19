@@ -212,7 +212,7 @@ exports.updateTask = async(req,res,next)=>{
             return res.status(404).json({ error: 'Task not found' });
             }
 
-            io.emit('taskUpdated', data);
+            io.emit('taskUpdated', task);
             return res.status(200).json(task);
         })
 
@@ -236,7 +236,7 @@ exports.deleteTask = async(req,res,next)=>{
         }
         await Task.findByIdAndRemove(TaskId)
 
-        io.emit('taskDeleted', data);
+        io.emit('taskDeleted', TaskId);
         res.status(200).json({message:'deleted sucessfully'})
         
     } catch (error) {
