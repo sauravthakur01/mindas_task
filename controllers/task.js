@@ -2,6 +2,7 @@ const Task = require('../models/task');
 const User = require('../models/user')
 
 const io = require('../socket/socket').getIO()
+const onlineUsers = require('../socket/socket') ;
 
 exports.postTask  =  async (req,res,next)=>{
     const {title, description, dueDate} = req.body ;
@@ -12,8 +13,8 @@ exports.postTask  =  async (req,res,next)=>{
 
         const data = await Task.create({title, description, dueDate , userId:req.user._id , createdBy:req.user._id })
 
-        io.emit('taskCreated', data);
-        res.status(201).json({data ,  message:'sucessfully added Task'})
+        // io.emit('taskCreated', data);
+        return res.status(201).json({data ,  message:'sucessfully added Task'})
     } catch (error) {
         res.status(500).json({message:error})
     }
@@ -32,13 +33,28 @@ exports.postAssignTask  =  async (req,res,next)=>{
         }
         const data = await Task.create({title, description, dueDate , userId:user._id , createdBy:req.user._id})
         
-        io.emit('taskAssigned', data);
+        io.on('taskAssigned' , (email) =>{
+            const senderSocket = getSocketIdByEmailId(email)
+
+            if (senderSocket) {
+                io.to(senderSocket).emit('taskReceived', data);
+              }
+        })
         res.status(201).json({data ,  message:'sucessfully added Task'})
     } catch (error) {
         res.status(500).json({message:error})
     }
 }
-// let limit_items  ;
+
+async function getSocketIdByEmailId(emailId) {
+    
+    const user = await User.findOne({email});
+    if(!user){
+        return null
+    }
+    return onlineUsers.get(user._id)
+}
+
 
 exports.getTasks = async(req,res,next)=>{
 
@@ -140,7 +156,11 @@ exports.updateTask = async(req,res,next)=>{
             return res.status(404).json({ error: 'Task not found' });
             }
 
-            io.emit('taskUpdated', task);
+            // if(task.createdBy == req.user._id || task.userId == req.user._id){
+            //     let socketId = getSocketById(task.userId)
+            //     io.to(socketId).emit('messageUpdated', task);
+            // }
+
             return res.status(200).json(task);
         })
 
@@ -162,12 +182,20 @@ exports.deleteTask = async(req,res,next)=>{
         if(Task.createdBy.toString() !== req.user._id.toString()){
             return res.status(401).json("Not Allowed");
         }
+        
+       
+            // let socketId = getSocketById(task.userId)
+            // io.to(socketId).emit('taskDeleted', TaskId);
+        
         await Task.findByIdAndRemove(TaskId)
-
-        io.emit('taskDeleted', TaskId);
+        
         res.status(200).json({message:'deleted sucessfully'})
         
     } catch (error) {
         res.status(500).json({message:error})
     }
+}
+
+async function getSocketById(id){
+    return onlineUsers.get(id)
 }

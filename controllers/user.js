@@ -10,6 +10,9 @@ exports.postSignup = async(req ,res,next)=>{
 
         if(!name || !email || !password){
             return res.status(400).json({message:'add all fields'})
+            // var err = {message : "add all fields"};
+            // err.status = 404 ; // set a custom status code
+            // next(JSON.stringify(err));
         }
 
         const user = await User.findOne({email:email});
@@ -19,7 +22,7 @@ exports.postSignup = async(req ,res,next)=>{
 
         const saltRounds = 10;
         bcrypt.hash(password, saltRounds, async(err, hash)=>{
-            let user = await User.create({name , email , password:hash , ispremiumuser : false })
+            let user = await User.create({name , email , password:hash  })
             console.log(user)
             return res.status(201).json({message:'successfully created new user'})
         });
